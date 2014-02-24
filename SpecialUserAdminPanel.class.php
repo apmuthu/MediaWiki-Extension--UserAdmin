@@ -113,8 +113,6 @@ class SpecialUserAdminPanel extends SpecialUADMBase {
     {
       case 'newuser' :
         return $this->getSpecialPageURL('AddUser', '', array('returnto' => $this->getTitle()->getPrefixedText()));
-      case 'purge' :
-        return $this->getSpecialPageURL('PurgeUser', '', array('userids' => $this->userids, 'returnto' => $this->getTitle()->getPrefixedText()));
     }
     return __FUNCTION__;
   }
@@ -232,7 +230,6 @@ $pageSizerHTML
 $pageSizerSpacerHTML
 $filterControlsHTML
 <form name="input" action="$this->mURL" method="post" class="visualClear">
-<button type="submit" name="action" value="purge">$this->uappurgeactionlabel</button>
 <button type="submit" name="action" value="block">$this->blockactionlabel</button>
 <table>
     <tr>
@@ -412,10 +409,11 @@ EOT;
     $editHref = $this->getSpecialPageURL('EditUser',$userName, array('returnto' => $this->getTitle()->getPrefixedText()));
     $contribsHref = $this->getSpecialPageURL('Contributions',$userName);
     $logsHref = $this->getSpecialPageURL('Log',$userName);
+    $rmovHref = $this->getSpecialPageURL('UserMerge', '', array('olduser' => $userName, 'deleteuser' => 'true' ) );
 
     return <<<EOT
 <tr>
-    <td><a href="$editHref">($this->editactionlabel</a> | <a href="$contribsHref">$this->contributionsactionlabel</a> | <a href="$logsHref">$this->logsactionlabel</a>)</td>
+    <td><a href="$editHref">($this->editactionlabel</a> | <a href="$contribsHref">$this->contributionsactionlabel</a> | <a href="$logsHref">$this->logsactionlabel</a> | <a href="$rmovHref">$this->rmovactionlabel</a> )</td>
     <td><input class="selusr" type="checkbox" name="userids[]" value="$id"/></td>
     <td>$id</td>
     <td><a href="$userPageURL">$userName</a></td>

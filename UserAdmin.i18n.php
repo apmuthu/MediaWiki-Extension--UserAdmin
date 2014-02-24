@@ -64,6 +64,7 @@ $messages['en'] = array(
         'uadm-applyactionlabel' => 'Apply',
         'uadm-editactionlabel' => 'Edit',
         'uadm-logsactionlabel' => 'Logs',
+        'uadm-rmovactionlabel' => 'Remove',        
         'uadm-talkactionlabel' => 'Talk',
         'uadm-backactionlabel' => 'Back',
         'uadm-purgeactionlabel' => 'Purge',
