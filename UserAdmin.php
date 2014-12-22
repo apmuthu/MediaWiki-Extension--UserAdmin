@@ -37,6 +37,9 @@ $wgExtensionCredits['specialpage'][] = array(
  
 $dir = dirname(__FILE__) . '/';
  
+# wgUserAdminExternalAuth indicates that external auth is used (e.g. LDAP) instead of passwords.
+$wgUserAdminExternalAuth = false;
+
 $wgExtensionMessagesFiles['UserAdmin'] = $dir . 'UserAdmin.i18n.php'; 
 
 $wgAutoloadClasses['SpecialUserAdminPanel'] = $dir . 'SpecialUserAdminPanel.class.php'; 
