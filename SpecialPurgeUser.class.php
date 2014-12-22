@@ -394,7 +394,7 @@ EOT;
       case 1:
         break;
       default:
-  			return $this->getPOSTRedirectURL( false, wfMsg( 'uadm-unsupportedversionmsg', $abortError) );
+  			return $this->getPOSTRedirectURL( false, wfMsg( 'uadm-invalidversionmsg', $abortError) );
 	  }
 
     switch($versionMinor)
@@ -402,10 +402,11 @@ EOT;
       case 16 :
       case 18 :
       case 19 :
+      case 24 :
         $purge = new MWPurge_1_16;
         break;
       default:
-  			return $this->getPOSTRedirectURL( false, wfMsg( 'uadm-unsupportedversionmsg', $abortError) );
+  			return $this->getPOSTRedirectURL( false, wfMsg( 'uadm-invalidversionmsg', $abortError) );
     }
 
     foreach($users as $user)
