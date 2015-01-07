@@ -388,7 +388,7 @@ EOT;
     {
       $userrightsPage = new UserrightsPage;    
       $userrightsPage->doSaveUserGroups($user, $this->groups, array(), $this->newuserreasonmsg);
-      wfRunHooks( 'UserRights', array( $user, $add, $remove ) );
+      wfRunHooks( 'UserRights', array( $user, $this->groups, array() ) );
       $successWikiText[] = wfMsg('uadm-changestogroupsuccessmsg', $this->username);
     }
     
