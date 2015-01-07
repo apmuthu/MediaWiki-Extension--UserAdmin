@@ -386,9 +386,9 @@ EOT;
     
 		$userLangUADMge = $user->getOption( 'langUADMge' );
     
-    $subject = wfMsgExt( $emailTitle, array( 'parsemag', 'langUADMge' => $userLangUADMge ));
+    $subject = wfMessage( $emailTitle)->text();
     
-		$body = wfMsgExt( $emailText, array( 'parsemag', 'langUADMge' => $userLangUADMge )
+		$body = wfMessage( $emailText
             ,$ip // $1 
             ,$user->getName() // $2 [User's name]
             ,$newPassword // $3 [new password]
@@ -397,7 +397,7 @@ EOT;
             ,$user->getRealName() // $6 [User's real name]
             ,$user->getEmail() // $7 [User's email]
             
-    );
+    )->text();
     
     return array($subject, $body, $newPassword);
   }
