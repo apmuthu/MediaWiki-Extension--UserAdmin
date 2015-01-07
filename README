@@ -7,6 +7,9 @@ private wikis that require tighter control of user accounts.
 Usage:
 	require_once("$IP/extensions/UserAdmin/UserAdmin.php"); in LocalSettings.php
 
+If $wgUserAdminExternalAuth is true, then password options are not used. It is
+assumed that users are authenticated against an external authority such as LDAP.
+
 Docs: http://www.mediawiki.org/wiki/Extension:UserAdmin
 Author: Lance Gatlin <lance.gatlin@gmail.com> Ap.Muthu <apmuthu@usa.net>
 License: http://opensource.org/licenses/gpl-3.0.html GNU Public License 3.0

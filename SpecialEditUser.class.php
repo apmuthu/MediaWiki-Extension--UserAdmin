@@ -124,7 +124,7 @@ class SpecialEditUser extends SpecialUADMBase {
    */
   function doGET() 
   {
-    global $wgLang, $wgOut, $wgUser, $wgAuth;
+    global $wgLang, $wgOut, $wgUser, $wgAuth, $wgUserAdminExternalAuth;
     
     $user = $this->validateGETParams();
     
@@ -316,7 +316,7 @@ EOT;
 EOT;
     }
     
-    return <<<EOT
+    $previewHTML = <<<EOT
 <form id="edituserform" name="input" action="$postURL" method="post" class="visualClear">
   <input type="hidden" name="edittoken" value="$editToken"/>
   <fieldset>
@@ -364,6 +364,9 @@ $domainHTML
       <legend>$this->editgroupslabel:</legend>
       $groupsHTML
     </fieldset>
+EOT;
+    if ( !$wgUserAdminExternalAuth ) {
+      $previewHTML .= <<<EOT
     <fieldset>
       <legend>$this->editpasswordlabel:</legend>
       <input id="pwdmanual" type="radio" name="pwdaction" value="manual" $pwdSetPasswordChecked/> <label for="pwdmanual">$this->setpasswordforuserlabel:</label><br/>
@@ -383,6 +386,9 @@ $domainHTML
       $previewWelcomeEmailHTML
       <input id="pwdnochange" type="radio" name="pwdaction" value="nochange" $pwdNoChangeChecked/> <label for="pwdnochange">$this->nochangetopasswordlabel</label><br/>
     </fieldset>
+EOT;
+    }
+    $previewHTML .= <<<EOT
     <label for="reason">$this->reasonlabel:</label> <input id="reason" type="text" name="reason" size="60" maxlength="255" value="$this->reason"/> $this->requiredlabel<br/>
     <button type="submit" name="action" value="saveuser">$this->saveuserlabel</button>
   </fieldset>
@@ -390,6 +396,7 @@ $domainHTML
 $searchFormHTML
 $returnToHTML
 EOT;
+    return $previewHTML;
     }
 
   /*
@@ -397,7 +404,7 @@ EOT;
    */
   function validatePOSTParams()
   {
-    global $wgUser, $wgAuth;
+    global $wgUser, $wgAuth, $wgUserAdminExternalAuth;
     
     $user = User::newFromId($this->userid);
     if(!$user->loadFromId())
@@ -436,26 +443,29 @@ EOT;
     if(empty($this->email))
       throw new InvalidPOSTParamException(wfMsg('uadm-fieldisrequiredmsg',$this->emailfield));
 
-    if(!User::isValidEmailAddr($this->email))
+    if(!Sanitizer::validateEmail($this->email))
       throw new InvalidPOSTParamException(wfMsg('uadm-invalidemailmsg',$this->emailfield));
 
     if(empty($this->reason))
       throw new InvalidPOSTParamException(wfMsg('uadm-fieldisrequiredmsg',$this->reasonfield));
     
-    if(empty($this->pwdaction))
-      throw new InvalidPOSTParamException(wfMsg('uadm-formsubmissionerrormsg'));
-      
-    if($this->action == 'saveuser' && $this->pwdaction == 'manual')
-    {
-      if(empty($this->password1) || empty($this->password2))
-        throw new InvalidPOSTParamException(wfMsg('uadm-fieldisrequiredmsg',$this->passwordfield));
-      
-      if($this->password1 != $this->password2)
-        throw new InvalidPOSTParamException(wfMsg('uadm-passwordsmustmatchmsg'));
-      
-//      $result = $user->checkPassword($this->password1);
-//      if($result !== true)
-//        throw new InvalidPOSTParamException(wfMsg('uadm-invalidpasswordmsg'));
+    # Ignore password information if we're authenticating externally
+    if ( !$wgUserAdminExternalAuth ) {
+      if(empty($this->pwdaction))
+        throw new InvalidPOSTParamException(wfMsg('uadm-formsubmissionerrormsg'));
+        
+      if($this->action == 'saveuser' && $this->pwdaction == 'manual')
+      {
+        if(empty($this->password1) || empty($this->password2))
+          throw new InvalidPOSTParamException(wfMsg('uadm-fieldisrequiredmsg',$this->passwordfield));
+        
+        if($this->password1 != $this->password2)
+          throw new InvalidPOSTParamException(wfMsg('uadm-passwordsmustmatchmsg'));
+        
+  //      $result = $user->checkPassword($this->password1);
+  //      if($result !== true)
+  //        throw new InvalidPOSTParamException(wfMsg('uadm-invalidpasswordmsg'));
+      }
     }
     
     return $user;

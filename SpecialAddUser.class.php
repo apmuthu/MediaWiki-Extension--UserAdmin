@@ -89,7 +89,7 @@ class SpecialAddUser extends SpecialUADMBase {
    */
   function doGET() 
   {
-    global $wgLang, $wgOut, $wgUser, $wgAuth;
+    global $wgLang, $wgOut, $wgUser, $wgAuth, $wgUserAdminExternalAuth;
     
     $this->validateGETParams();
     
@@ -183,7 +183,7 @@ EOT;
 EOT;
     }
     
-    return <<<EOT
+    $previewHTML = <<<EOT
 <form id="adduserform" name="input" action="$postURL" method="post" class="visualClear">
   <input type="hidden" name="edittoken" value="$editToken"/>
   <fieldset>
@@ -207,6 +207,10 @@ $domainHTML
       <legend>$this->editgroupslabel</legend>
       $groupsHTML
     </fieldset>
+EOT;
+    # Don't display the password stuff if we're externally authenticating.
+    if ( !$wgUserAdminExternalAuth ) {
+      $previewHTML .= <<<EOT
     <fieldset>
       <legend>$this->editpasswordlabel</legend>
       <input id="pwdmanual" type="radio" name="pwdaction" value="manual" $setPasswordChecked/> <label for="pwdmanual">$this->setpasswordforuserlabel</label><br/>
@@ -223,11 +227,17 @@ $domainHTML
       <input id="pwdemailwelcome" type="radio" name="pwdaction" value="emailwelcome" $emailWelcomeChecked/> <label for="pwdemailwelcome">$this->emailwelcomelabel</label> <button type="submit" name="action" value="emailwelcomepreview">$this->previewactionlabel</button> (<a href="$welcomeTitleHref">$this->subjectlabel</a> | <a href="$welcomeTextHref">$this->bodylabel</a>)<br/>
       $previewWelcomeEmailHTML
     </fieldset>
+EOT;
+    }
+
+    $previewHTML .= <<<EOT
+
     <button type="submit" name="action" value="adduser">$this->adduserlabel</button>
   </fieldset>
 </form>
 $returnToHTML
 EOT;
+    return $previewHTML;
   }
 
   /*
@@ -235,7 +245,7 @@ EOT;
    */
   function validatePOSTParams()
   {
-    global $wgUser, $wgAuth;
+    global $wgUser, $wgAuth, $wgUserAdminExternalAuth;
     
     // Validate FORM 
     if(empty($this->username))
@@ -266,24 +276,26 @@ EOT;
     if(empty($this->email))
       throw new InvalidPOSTParamException(wfMsg('uadm-fieldisrequiredmsg',$this->emailfield));
 
-    if(!User::isValidEmailAddr($this->email))
+    if(!Sanitizer::validateEmail($this->email))
       throw new InvalidPOSTParamException(wfMsg('uadm-invalidemailmsg',$this->emailfield));
 
-    if(empty($this->pwdaction))
-      throw new InvalidPOSTParamException(wfMsg('uadm-formsubmissionerrormsg'));
-    
-    if($this->pwdaction == 'manual')
-    {
-      if(empty($this->password1) || empty($this->password2))
-        throw new InvalidPOSTParamException(wfMsg('uadm-fieldisrequiredmsg',$this->passwordfield));
+    # Ignore password bits if we're externally authenticating
+    if ( !$wgUserAdminExternalAuth ) {
+      if(empty($this->pwdaction))
+        throw new InvalidPOSTParamException(wfMsg('uadm-formsubmissionerrormsg'));
       
-      if($this->password1 != $this->password2)
-        throw new InvalidPOSTParamException(wfMsg('uadm-passwordsmustmatchmsg'));
-
+      if($this->pwdaction == 'manual')
+      {
+        if(empty($this->password1) || empty($this->password2))
+          throw new InvalidPOSTParamException(wfMsg('uadm-fieldisrequiredmsg',$this->passwordfield));
+        
+        if($this->password1 != $this->password2)
+          throw new InvalidPOSTParamException(wfMsg('uadm-passwordsmustmatchmsg'));
+  
+      }
+      elseif($this->pwdaction != 'email' && $this->pwdaction != 'emailwelcome')
+        throw new InvalidPOSTParamException(wfMsg('uadm-formsubmissionerrormsg'));
     }
-    elseif($this->pwdaction != 'email' && $this->pwdaction != 'emailwelcome')
-      throw new InvalidPOSTParamException(wfMsg('uadm-formsubmissionerrormsg'));
-
               
   }
   
@@ -294,7 +306,7 @@ EOT;
    */
   function doPOST()
   {
-    global $wgUser, $wgAuth;
+    global $wgUser, $wgAuth, $wgUserAdminExternalAuth;
 
     switch($this->action)
     {
@@ -328,29 +340,35 @@ EOT;
     $successWikiText = array();
     $successWikiText[] = wfMsg('uadm-newusersuccessmsg', $this->username);
     
-    $userPassword = '';
-    switch($this->pwdaction)
-    {
-      case 'manual' :
-        try {        
-          $user->setPassword($this->password1);
-          $userPassword = $this->password1;
-        }
-        catch(PasswordError $pe)
-        {
-          return $this->getPOSTRedirectURL(false, wfMsg('uadm-passworderrormsg') . $pe->getText());
-        }
-        $successWikiText[] = wfMsg('uadm-passwordchangesuccessmsg',$this->username);
-        break;
-      
-      case 'emailwelcome' :
-        $result = self::mailWelcomeAndPassword($user);
-
-        if( WikiError::isError( $result ) )
-          return $this->getPOSTRedirectURL( false, wfMsg( 'uadm-mailerror', $result->getMessage() ) );
-
-        $successWikiText[] = wfMsg('uadm-welcomeemailsuccessmsg', $this->username, $this->email);
-        break;
+    # Don't bother with password if we're authenticating externally
+    if ( !$wgUserAdminExternalAuth ) {
+      $userPassword = '';
+      switch($this->pwdaction)
+      {
+        case 'manual' :
+          try {        
+            $user->setPassword($this->password1);
+            $userPassword = $this->password1;
+          }
+          catch(PasswordError $pe)
+          {
+            return $this->getPOSTRedirectURL(false, wfMsg('uadm-passworderrormsg') . $pe->getText());
+          }
+          $successWikiText[] = wfMsg('uadm-passwordchangesuccessmsg',$this->username);
+          break;
+        
+        case 'emailwelcome' :
+          $result = self::mailWelcomeAndPassword($user);
+  
+          if( WikiError::isError( $result ) )
+            return $this->getPOSTRedirectURL( false, wfMsg( 'uadm-mailerror', $result->getMessage() ) );
+  
+          $successWikiText[] = wfMsg('uadm-welcomeemailsuccessmsg', $this->username, $this->email);
+          break;
+      }
+    } else {
+      # Just set a dummy random password which will never be used
+      $userPassword = substr(str_shuffle(MD5(microtime())), 0, 10);
     }
     
     $user->setToken();
@@ -370,7 +388,7 @@ EOT;
     {
       $userrightsPage = new UserrightsPage;    
       $userrightsPage->doSaveUserGroups($user, $this->groups, array(), $this->newuserreasonmsg);
-      wfRunHooks( 'UserRights', array( $user, $add, $remove ) );
+      wfRunHooks( 'UserRights', array( $user, $this->groups, array() ) );
       $successWikiText[] = wfMsg('uadm-changestogroupsuccessmsg', $this->username);
     }
     
